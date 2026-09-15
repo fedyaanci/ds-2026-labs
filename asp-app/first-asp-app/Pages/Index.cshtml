@@ -1,0 +1,17 @@
+﻿@page
+@model IndexModel
+
+
+
+<h1>Моя первая приложуха</h1>
+<p> now @DateTime.Now</p>
+
+<form method="get">
+    <input name='name' placeholder="Введите имя">
+    <button type="submit">отправить</button>
+</form>
+
+@if (Request.Query.ContainsKey("name"))
+{
+    <h2>Привет, @Request.Query["name"]!</h2>
+}
