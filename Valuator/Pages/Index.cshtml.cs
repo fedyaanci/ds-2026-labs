@@ -15,7 +15,7 @@ public class IndexModel : PageModel
     IConnectionMultiplexer redis)
     {
         _logger = logger;
-        _db = redis.GetDatabase();
+        _db = redis.GetDatabase(); // получает объект для работы с редисом return IDatabase
     }
 
     public void OnGet()
@@ -30,7 +30,7 @@ public class IndexModel : PageModel
         string id = Guid.NewGuid().ToString();
 
         string textKey = "TEXT-" + id;
-        _db.StringSet(textKey, text); // TODO: (pa1) сохранить в БД (Redis) text по ключу textKey
+        _db.StringSet(textKey, text); // TODO: (pa1) сохранить в БД (Redis) text по ключу textKey - команда сохранения строки 
 
         string rankKey = "RANK-" + id;
 
