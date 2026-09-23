@@ -61,6 +61,20 @@ public class Worker : BackgroundService
                 double rank = CalculateRank(text);
                 await _db.StringSetAsync($"RANK-{request.TextId}", rank);
 
+                channel.ExchangeDeclare(
+                    exchange: Messaging.EventsExchange,
+                    type: ExchangeType.Topic,
+                    durable: true);
+                byte[] eventBody = JsonSerializer.SerializeToUtf8Bytes(
+                    new RankCalculated(request.TextId, rank));
+                IBasicProperties eventProperties = channel.CreateBasicProperties();
+                eventProperties.Persistent = true;
+                channel.BasicPublish(
+                    exchange: Messaging.EventsExchange,
+                    routingKey: Messaging.RankCalculatedRoutingKey,
+                    basicProperties: eventProperties,
+                    body: eventBody);
+
                 _logger.LogInformation(
                     "Rank {Rank} calculated for text {TextId}", rank, request.TextId);
                 channel.BasicAck(eventArgs.DeliveryTag, multiple: false);

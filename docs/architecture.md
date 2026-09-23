@@ -1,19 +1,21 @@
-# PA3: C4, уровень контейнеров
+# PA4: C4, уровень контейнеров
 
 ```mermaid
 C4Container
-    title Valuator после выделения RankCalculator
+    title Publisher-Subscriber в Valuator
     Person(user, "Пользователь")
     Container(nginx, "Nginx", "Reverse proxy", "Распределяет HTTP-запросы")
-    Container(valuator, "Valuator x2", "ASP.NET Core Razor Pages", "Принимает текст и создаёт задание")
-    ContainerQueue(rabbit, "RabbitMQ", "Message broker", "Очередь заданий расчёта rank")
-    Container(rank, "RankCalculator x2", ".NET Worker", "Конкурирующие потребители вычисляют rank")
+    Container(valuator, "Valuator x2", "ASP.NET Core", "Сохраняет текст, similarity и публикует событие")
+    ContainerQueue(rabbit, "RabbitMQ", "Message broker", "Очередь заданий и exchange событий")
+    Container(rank, "RankCalculator x2", ".NET Worker", "Вычисляет rank и публикует событие")
+    Container(logger, "EventsLogger x2", ".NET Worker", "Каждый экземпляр получает все события")
     ContainerDb(redis, "Redis", "Key-value database", "Тексты и результаты")
 
     Rel(user, nginx, "Открывает сайт", "HTTP")
-    Rel(nginx, valuator, "Проксирует запрос")
-    Rel(valuator, redis, "Сохраняет текст и similarity")
-    Rel(valuator, rabbit, "Публикует RankCalculationRequested")
-    Rel(rank, rabbit, "Получает задания")
-    Rel(rank, redis, "Читает текст и сохраняет rank")
+    Rel(nginx, valuator, "Проксирует")
+    Rel(valuator, redis, "Читает и пишет")
+    Rel(valuator, rabbit, "RankCalculationRequested, SimilarityCalculated")
+    Rel(rank, rabbit, "Получает задания, публикует RankCalculated")
+    Rel(rank, redis, "Читает текст, пишет rank")
+    Rel(logger, rabbit, "Подписывается на оба события")
 ```

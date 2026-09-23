@@ -79,6 +79,30 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  events-logger-1:
+    build:
+      context: .
+      dockerfile: EventsLogger/Dockerfile
+    environment: &logger-environment
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: lab
+      RabbitMq__Password: lab
+      InstanceId: logger-1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  events-logger-2:
+    build:
+      context: .
+      dockerfile: EventsLogger/Dockerfile
+    environment:
+      <<: *logger-environment
+      InstanceId: logger-2
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   nginx:
     image: nginx:1.29-alpine
     ports:

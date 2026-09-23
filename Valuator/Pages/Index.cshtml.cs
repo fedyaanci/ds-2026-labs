@@ -10,16 +10,16 @@ public class IndexModel : PageModel
     private readonly ILogger<IndexModel> _logger;
 
     private readonly IDatabase _db;
-    private readonly RankRequestPublisher _rankRequests;
+    private readonly MessagePublisher _messages;
 
     public IndexModel(
     ILogger<IndexModel> logger,
     IConnectionMultiplexer redis,
-    RankRequestPublisher rankRequests)
+    MessagePublisher messages)
     {
         _logger = logger;
         _db = redis.GetDatabase();
-        _rankRequests = rankRequests;
+        _messages = messages;
     }
 
     public void OnGet()
@@ -53,9 +53,10 @@ public class IndexModel : PageModel
         }
 
         _db.StringSet(similarityKey, similarity);
+        _messages.PublishSimilarityCalculated(id, similarity);
 
         // В сообщении передаётся только ID. Сам текст RankCalculator прочитает из Redis.
-        _rankRequests.Publish(id);
+        _messages.Publish(id);
 
         return Redirect($"summary?id={id}");
     }

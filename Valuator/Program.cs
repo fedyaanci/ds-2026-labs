@@ -17,7 +17,7 @@ public class Program
         var redis = ConnectionMultiplexer.Connect(redisAddress); // подключение к redis
 
         builder.Services.AddSingleton<IConnectionMultiplexer>(redis); // подключение доступно всей приложухе
-        builder.Services.AddSingleton<RankRequestPublisher>();
+        builder.Services.AddSingleton<MessagePublisher>();
         //
 
         var app = builder.Build();
