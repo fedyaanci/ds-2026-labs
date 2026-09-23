@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
+using Valuator.Messaging;
 
 namespace Valuator.Pages;
 
@@ -9,13 +10,16 @@ public class IndexModel : PageModel
     private readonly ILogger<IndexModel> _logger;
 
     private readonly IDatabase _db;
+    private readonly RankRequestPublisher _rankRequests;
 
     public IndexModel(
     ILogger<IndexModel> logger,
-    IConnectionMultiplexer redis)
+    IConnectionMultiplexer redis,
+    RankRequestPublisher rankRequests)
     {
         _logger = logger;
         _db = redis.GetDatabase();
+        _rankRequests = rankRequests;
     }
 
     public void OnGet()
@@ -32,42 +36,6 @@ public class IndexModel : PageModel
         string textKey = "TEXT-" + id;
         _db.StringSet(textKey, text); // TODO: (pa1) сохранить в БД (Redis) text по ключу textKey
 
-        string rankKey = "RANK-" + id;
-
-        // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
-        int nonAlphabeticCount = 0;
-
-        foreach (char symbol in text)
-        {
-            bool isLatin =
-                (symbol >= 'A' && symbol <= 'Z') ||
-                (symbol >= 'a' && symbol <= 'z');
-
-            bool isRussian =
-                (symbol >= 'А' && symbol <= 'Я') ||
-                (symbol >= 'а' && symbol <= 'я') ||
-                symbol == 'Ё' ||
-                symbol == 'ё';
-
-            if (!isLatin && !isRussian)
-            {
-                nonAlphabeticCount++;
-            }
-        }
-
-        double rank;
-
-        if (text.Length == 0)
-        {
-            rank = 0;
-        }
-        else
-        {
-            rank = (double)nonAlphabeticCount / text.Length;
-        }
-
-        _db.StringSet(rankKey, rank);
-        //
         string similarityKey = "SIMILARITY-" + id;
 
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
@@ -85,6 +53,9 @@ public class IndexModel : PageModel
         }
 
         _db.StringSet(similarityKey, similarity);
+
+        // В сообщении передаётся только ID. Сам текст RankCalculator прочитает из Redis.
+        _rankRequests.Publish(id);
 
         return Redirect($"summary?id={id}");
     }

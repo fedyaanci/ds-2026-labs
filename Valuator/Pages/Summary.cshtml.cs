@@ -23,7 +23,7 @@ public class SummaryModel : PageModel
         _db = redis.GetDatabase();
     }
 
-    public double Rank { get; set; }
+    public double? Rank { get; set; }
     public double Similarity { get; set; }
 
     public void OnGet(string id)
@@ -34,7 +34,8 @@ public class SummaryModel : PageModel
         string rankKey = "RANK-" + id;
         string similarityKey = "SIMILARITY-" + id;
 
-        Rank = (double)_db.StringGet(rankKey);
+        RedisValue rankValue = _db.StringGet(rankKey);
+        Rank = rankValue.HasValue ? (double)rankValue : null;
         Similarity = (double)_db.StringGet(similarityKey);
     }
 }

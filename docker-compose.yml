@@ -1,0 +1,90 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: lab
+      RABBITMQ_DEFAULT_PASS: lab
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  valuator-1:
+    build:
+      context: .
+      dockerfile: Valuator/Dockerfile
+    environment: &valuator-environment
+      ConnectionStrings__Redis: redis:6379
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: lab
+      RabbitMq__Password: lab
+    ports:
+      - "5001:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  valuator-2:
+    build:
+      context: .
+      dockerfile: Valuator/Dockerfile
+    environment: *valuator-environment
+    ports:
+      - "5002:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  rank-calculator-1:
+    build:
+      context: .
+      dockerfile: RankCalculator/Dockerfile
+    environment: &rank-environment
+      ConnectionStrings__Redis: redis:6379
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: lab
+      RabbitMq__Password: lab
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  rank-calculator-2:
+    build:
+      context: .
+      dockerfile: RankCalculator/Dockerfile
+    environment: *rank-environment
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.29-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - valuator-1
+      - valuator-2

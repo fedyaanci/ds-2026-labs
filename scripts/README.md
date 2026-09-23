@@ -1,33 +1,17 @@
-# Скрипты для PA2 (Windows PowerShell)
+# Запуск PA3
 
-Перед запуском нужен Redis на `localhost:6379`. Для локального контейнера:
-
-```powershell
-docker start valuator-redis
-```
-
-Из корня репозитория выполните:
+Нужны Docker Desktop и PowerShell. Из корня репозитория:
 
 ```powershell
 .\scripts\start.ps1
 .\scripts\stop.ps1
 ```
 
-`start.ps1` проверяет Redis и конфигурацию Nginx, собирает `Valuator`, запускает
-две копии на портах 5001 и 5002 и Nginx на 8080. `stop.ps1` останавливает
-процессы, запущенные `start.ps1`. Redis он не останавливает.
+Скрипт запускает Redis, RabbitMQ, две копии Valuator, два конкурирующих
+RankCalculator и Nginx. Приложение доступно на `http://localhost:8080/`.
 
-Если Nginx установлен не в соседней с репозиторием папке `nginx-1.31.6` и не
-доступен через `PATH`, задайте путь к его папке перед запуском:
+Проверить распределение заданий можно так:
 
 ```powershell
-$env:NGINX_HOME = 'C:\path\to\nginx'
-.\scripts\start.ps1
+docker compose logs rank-calculator-1 rank-calculator-2
 ```
-
-Перед использованием `start.ps1` закройте копии приложения и Nginx, которые
-были запущены вручную: скрипт не занимает уже используемые порты. Временные
-PID и логи находятся в `scripts/.run/` и не добавляются в Git.
-
-Откройте http://localhost:8080/. Порт копии, ответившей на запрос, можно
-увидеть в HTTP-заголовке `X-Backend` через инструменты разработчика браузера.
