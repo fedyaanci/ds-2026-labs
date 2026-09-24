@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ProtoCli/ProtoCli.csproj" />
+  <Project Path="ProtoKey.Tests/ProtoKey.Tests.csproj" />
+  <Project Path="ProtoKey/ProtoKey.csproj" />
+</Solution>
