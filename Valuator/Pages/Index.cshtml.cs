@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using ShardStore;
@@ -5,6 +6,7 @@ using Valuator.Messaging;
 
 namespace Valuator.Pages;
 
+[Authorize]
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
@@ -45,6 +47,9 @@ public class IndexModel : PageModel
         string textKey = "TEXT-" + id;
         await shard.Database.StringSetAsync(textKey, text);
         await shard.Database.StringSetAsync("COUNTRY-" + id, country);
+        await shard.Database.StringSetAsync(
+            "AUTHOR-" + id,
+            User.Identity?.Name ?? throw new InvalidOperationException("User is not authenticated"));
 
         string similarityKey = "SIMILARITY-" + id;
 

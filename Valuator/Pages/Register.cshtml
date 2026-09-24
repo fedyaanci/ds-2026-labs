@@ -1,0 +1,19 @@
+@page
+@model Valuator.Pages.RegisterModel
+@{
+    ViewData["Title"] = "Регистрация";
+}
+
+<h1>Регистрация</h1>
+<form method="post" class="col-md-5">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="Login" class="form-label"></label>
+        <input asp-for="Login" class="form-control" autocomplete="username" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" class="form-control" autocomplete="new-password" />
+    </div>
+    <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+</form>

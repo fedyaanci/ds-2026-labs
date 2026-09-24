@@ -15,8 +15,10 @@ public sealed class MessagePublisher : IDisposable
         {
             HostName = configuration["RabbitMq:HostName"] ?? "localhost",
             Port = configuration.GetValue("RabbitMq:Port", 5672),
-            UserName = configuration["RabbitMq:UserName"] ?? "lab",
-            Password = configuration["RabbitMq:Password"] ?? "lab"
+            UserName = configuration["RabbitMq:UserName"]
+                ?? throw new InvalidOperationException("RabbitMq:UserName is required"),
+            Password = configuration["RabbitMq:Password"]
+                ?? throw new InvalidOperationException("RabbitMq:Password is required")
         };
 
         _connection = factory.CreateConnection();

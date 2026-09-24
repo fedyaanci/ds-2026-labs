@@ -1,35 +1,33 @@
-# Реализация PA6
+# Реализация PA7
 
-В форме появился выбор страны. Страна однозначно задаёт ключ сегментирования:
+Ветка основана на PA6 и выполняет обе части задания.
 
-| Страна | Сегмент |
-|---|---|
-| Russia | RU |
-| France, Germany | EU |
-| UAE, India | ASIA |
+## Защита промежуточного ПО
 
-В Docker Compose запускаются четыре независимых Redis:
+- Пять экземпляров Redis запускаются с `requirepass`.
+- RabbitMQ получает отдельные имя пользователя и пароль.
+- Пароли передаются компонентам через переменные окружения Docker Compose.
+- Значения для локальной разработки находятся в `.env`; в исходном C# коде
+  паролей нет. Шаблон приведён в `.env.example`.
 
-- `redis-main` хранит только пары `SHARD-{id} → регион`;
-- `redis-ru`, `redis-eu`, `redis-asia` хранят тексты, страны и результаты.
+## Пользователи
 
-`Valuator` при записи сразу знает регион из страны. `Summary` и
-`RankCalculator` сначала читают карту из `DB_MAIN`, затем получают нужное
-соединение через `ShardedRedisStore`. Каждое такое обращение пишет лог
-`LOOKUP: {id}, {region}`.
+- `/Register` атомарно создаёт уникального пользователя в отдельном Redis Auth.
+- Пароль хранится как PBKDF2-SHA256 хеш с индивидуальной случайной солью.
+- `/Login` проверяет пароль и создаёт защищённую cookie.
+- Index и Summary помечены `[Authorize]`.
+- При отправке текста в его региональном сегменте сохраняется `AUTHOR-{id}`.
+- Summary сравнивает автора с текущим пользователем и возвращает запрет доступа
+  для остальных.
+- Обе копии Valuator используют общий каталог Data Protection keys, поэтому
+  cookie работает при балансировке запросов Nginx.
 
-Запуск:
+## Запуск
 
 ```powershell
+Copy-Item .env.example .env
 .\scripts\start.ps1
-docker compose logs -f valuator-1 rank-calculator-1
 ```
 
-Проверить размещение данных можно командами:
-
-```powershell
-docker compose exec redis-main redis-cli KEYS "SHARD-*"
-docker compose exec redis-ru redis-cli KEYS "TEXT-*"
-docker compose exec redis-eu redis-cli KEYS "TEXT-*"
-docker compose exec redis-asia redis-cli KEYS "TEXT-*"
-```
+Открыть `http://localhost:8080/`, зарегистрировать двух пользователей и
+проверить, что второй не может открыть ссылку Summary первого.

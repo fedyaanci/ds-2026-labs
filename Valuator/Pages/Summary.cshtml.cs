@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ using StackExchange.Redis;
 
 namespace Valuator.Pages;
 
+[Authorize]
 public class SummaryModel : PageModel
 {
     private readonly ILogger<SummaryModel> _logger;
@@ -40,6 +42,12 @@ public class SummaryModel : PageModel
         }
 
         _logger.LogInformation("LOOKUP: {TextId}, {Region}", id, shard.Region);
+        string author = (await shard.Database.StringGetAsync("AUTHOR-" + id)).ToString();
+        if (!string.Equals(author, User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         string rankKey = "RANK-" + id;
         string similarityKey = "SIMILARITY-" + id;
 

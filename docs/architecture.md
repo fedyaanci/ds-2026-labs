@@ -1,30 +1,28 @@
-# PA6: C4, уровень контейнеров
+# PA7: C4, уровень контейнеров
 
 ```mermaid
 C4Container
-    title Valuator с сегментированием данных
+    title Защищённый Valuator
     Person(user, "Пользователь")
-    Container(nginx, "Nginx", "Reverse proxy", "Распределяет HTTP-запросы")
-    Container(valuator, "Valuator x2", "ASP.NET Core", "Выбирает сегмент по стране")
-    ContainerQueue(rabbit, "RabbitMQ", "Message broker", "Задания и события")
-    Container(rank, "RankCalculator x2", ".NET Worker", "Находит сегмент и вычисляет rank")
+    Container(nginx, "Nginx", "Reverse proxy", "Единая точка входа")
+    Container(valuator, "Valuator x2", "ASP.NET Core", "Регистрация, cookie-аутентификация и проверка автора")
+    ContainerQueue(rabbit, "RabbitMQ", "Password protected", "Задания и события")
+    Container(rank, "RankCalculator x2", ".NET Worker", "Вычисляет rank")
     Container(logger, "EventsLogger x2", ".NET Worker", "Логирует события")
-    ContainerDb(main, "Redis Main", "Shard map", "Только ID → RU/EU/ASIA")
-    ContainerDb(ru, "Redis RU", "Shard", "Данные пользователей Russia")
-    ContainerDb(eu, "Redis EU", "Shard", "Данные France и Germany")
-    ContainerDb(asia, "Redis ASIA", "Shard", "Данные UAE и India")
+    ContainerDb(auth, "Redis Auth", "Password protected", "Пользователи и хеши паролей")
+    ContainerDb(main, "Redis Main", "Password protected", "Shard map")
+    ContainerDb(shards, "Redis RU/EU/ASIA", "Password protected", "Тексты, авторы и результаты")
+    ContainerDb(keys, "Data Protection volume", "Shared key ring", "Ключи шифрования cookie")
 
     Rel(user, nginx, "HTTP")
     Rel(nginx, valuator, "Проксирует")
-    Rel(valuator, main, "Записывает и читает shard map")
-    Rel(rank, main, "Читает shard map")
-    Rel(valuator, ru, "Читает и пишет по региону")
-    Rel(valuator, eu, "Читает и пишет по региону")
-    Rel(valuator, asia, "Читает и пишет по региону")
-    Rel(rank, ru, "Читает и пишет по региону")
-    Rel(rank, eu, "Читает и пишет по региону")
-    Rel(rank, asia, "Читает и пишет по региону")
-    Rel(valuator, rabbit, "Задания и SimilarityCalculated")
-    Rel(rank, rabbit, "Задания и RankCalculated")
-    Rel(logger, rabbit, "События")
+    Rel(valuator, auth, "Регистрирует и проверяет пользователя", "AUTH")
+    Rel(valuator, keys, "Читает общий key ring")
+    Rel(valuator, main, "Находит сегмент", "AUTH")
+    Rel(valuator, shards, "Пишет текст и автора", "AUTH")
+    Rel(valuator, rabbit, "Публикует", "AMQP + credentials")
+    Rel(rank, rabbit, "Получает и публикует", "AMQP + credentials")
+    Rel(rank, main, "Находит сегмент", "AUTH")
+    Rel(rank, shards, "Читает и пишет", "AUTH")
+    Rel(logger, rabbit, "Подписывается", "AMQP + credentials")
 ```
