@@ -1,21 +1,24 @@
-# PA4: C4, уровень контейнеров
+# PA5: C4, уровень контейнеров
 
 ```mermaid
 C4Container
-    title Publisher-Subscriber в Valuator
+    title Уведомление браузера через SignalR
     Person(user, "Пользователь")
-    Container(nginx, "Nginx", "Reverse proxy", "Распределяет HTTP-запросы")
-    Container(valuator, "Valuator x2", "ASP.NET Core", "Сохраняет текст, similarity и публикует событие")
-    ContainerQueue(rabbit, "RabbitMQ", "Message broker", "Очередь заданий и exchange событий")
-    Container(rank, "RankCalculator x2", ".NET Worker", "Вычисляет rank и публикует событие")
-    Container(logger, "EventsLogger x2", ".NET Worker", "Каждый экземпляр получает все события")
+    Container(browser, "Страница Summary", "JavaScript + SignalR", "Ждёт готовый rank")
+    Container(nginx, "Nginx", "Reverse proxy", "HTTP и WebSocket")
+    Container(valuator, "Valuator x2", "ASP.NET Core + SignalR", "Форма, Summary и SignalR hub")
+    ContainerQueue(rabbit, "RabbitMQ", "Message broker", "Задания и события")
+    Container(rank, "RankCalculator x2", ".NET Worker", "Вычисляет rank после задержки")
+    Container(logger, "EventsLogger x2", ".NET Worker", "Логирует события")
     ContainerDb(redis, "Redis", "Key-value database", "Тексты и результаты")
 
-    Rel(user, nginx, "Открывает сайт", "HTTP")
+    Rel(user, browser, "Работает со страницей")
+    Rel(browser, nginx, "HTTP, WebSocket")
     Rel(nginx, valuator, "Проксирует")
-    Rel(valuator, redis, "Читает и пишет")
-    Rel(valuator, rabbit, "RankCalculationRequested, SimilarityCalculated")
+    Rel(valuator, rabbit, "Публикует задания и события; подписывается на RankCalculated")
     Rel(rank, rabbit, "Получает задания, публикует RankCalculated")
+    Rel(valuator, redis, "Читает и пишет")
     Rel(rank, redis, "Читает текст, пишет rank")
-    Rel(logger, rabbit, "Подписывается на оба события")
+    Rel(valuator, browser, "Отправляет rank", "SignalR/WebSocket")
+    Rel(logger, rabbit, "Получает все события")
 ```

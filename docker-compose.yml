@@ -32,6 +32,7 @@ services:
       RabbitMq__HostName: rabbitmq
       RabbitMq__UserName: lab
       RabbitMq__Password: lab
+      InstanceId: valuator-1
     ports:
       - "5001:8080"
     depends_on:
@@ -44,7 +45,9 @@ services:
     build:
       context: .
       dockerfile: Valuator/Dockerfile
-    environment: *valuator-environment
+    environment:
+      <<: *valuator-environment
+      InstanceId: valuator-2
     ports:
       - "5002:8080"
     depends_on:

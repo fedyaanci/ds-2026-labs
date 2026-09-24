@@ -1,4 +1,4 @@
-# Запуск PA4
+# Запуск PA5
 
 Нужны Docker Desktop и PowerShell. Из корня репозитория:
 
@@ -10,6 +10,8 @@
 Скрипт запускает Redis, RabbitMQ, две копии Valuator, два конкурирующих
 RankCalculator, два EventsLogger и Nginx. Приложение доступно на
 `http://localhost:8080/`.
+
+Nginx также проксирует WebSocket-соединение SignalR со страницы Summary.
 
 Проверить распределение заданий можно так:
 

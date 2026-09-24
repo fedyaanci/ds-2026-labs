@@ -58,6 +58,13 @@ public class Worker : BackgroundService
                 }
 
                 string text = textValue.ToString();
+                TimeSpan interval = TimeSpan.FromSeconds(Random.Shared.Next(3, 16));
+                _logger.LogInformation(
+                    "Waiting {Delay} before processing text {TextId}",
+                    interval,
+                    request.TextId);
+                await Task.Delay(interval, stoppingToken);
+
                 double rank = CalculateRank(text);
                 await _db.StringSetAsync($"RANK-{request.TextId}", rank);
 

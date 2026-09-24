@@ -1,5 +1,6 @@
 using StackExchange.Redis; //
 using Valuator.Messaging;
+using Valuator.Realtime;
 
 namespace Valuator;
 
@@ -11,6 +12,7 @@ public class Program
 
         // Add services to the container.
         builder.Services.AddRazorPages();
+        builder.Services.AddSignalR();
         //
         string redisAddress = builder.Configuration.GetConnectionString("Redis")!; // получение адреса
 
@@ -18,6 +20,7 @@ public class Program
 
         builder.Services.AddSingleton<IConnectionMultiplexer>(redis); // подключение доступно всей приложухе
         builder.Services.AddSingleton<MessagePublisher>();
+        builder.Services.AddHostedService<RankEventsNotifier>();
         //
 
         var app = builder.Build();
@@ -34,6 +37,7 @@ public class Program
         app.UseAuthorization();
 
         app.MapRazorPages();
+        app.MapHub<ValuationHub>("/valuationHub");
 
         app.Run();
     }

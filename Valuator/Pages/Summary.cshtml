@@ -2,12 +2,45 @@
 @model Valuator.Pages.SummaryModel
 @{
 }
-@if (Model.Rank.HasValue)
-{
-    <p>Оценка содержания: @Model.Rank</p>
-}
-else
-{
-    <p>Оценка содержания не завершена</p>
-}
+<p id="rank-result">
+    @if (Model.Rank.HasValue)
+    {
+        <text>Оценка содержания: @Model.Rank</text>
+    }
+    else
+    {
+        <text>Оценка содержания не завершена</text>
+    }
+</p>
 <p>Плагиат: @Model.Similarity</p>
+
+@if (!Model.Rank.HasValue)
+{
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script>
+        (() => {
+            const textId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TextId));
+            const output = document.getElementById("rank-result");
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/valuationHub", {
+                    skipNegotiation: true,
+                    transport: signalR.HttpTransportType.WebSockets
+                })
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("rankCalculated", (eventTextId, rank) => {
+                if (eventTextId === textId) {
+                    output.textContent = `Оценка содержания: ${rank}`;
+                }
+            });
+
+            connection.start()
+                .then(() => connection.invoke("JoinText", textId))
+                .catch(error => {
+                    console.error(error);
+                    output.textContent = "Не удалось подключиться к обновлениям. Обновите страницу.";
+                });
+        })();
+    </script>
+}

@@ -25,10 +25,12 @@ public class SummaryModel : PageModel
 
     public double? Rank { get; set; }
     public double Similarity { get; set; }
+    public string TextId { get; set; } = string.Empty;
 
     public void OnGet(string id)
     {
         _logger.LogDebug(id);
+        TextId = id;
 
         // TODO: (pa1) проинициализировать свойства Rank и Similarity значениями из БД (Redis)
         string rankKey = "RANK-" + id;
