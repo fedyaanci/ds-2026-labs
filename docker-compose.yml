@@ -1,13 +1,31 @@
 services:
-  redis:
+  redis-main:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
-    healthcheck:
+      - "6000:6379"
+    healthcheck: &redis-health
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
       timeout: 2s
       retries: 20
+
+  redis-ru:
+    image: redis:7-alpine
+    ports:
+      - "6001:6379"
+    healthcheck: *redis-health
+
+  redis-eu:
+    image: redis:7-alpine
+    ports:
+      - "6002:6379"
+    healthcheck: *redis-health
+
+  redis-asia:
+    image: redis:7-alpine
+    ports:
+      - "6003:6379"
+    healthcheck: *redis-health
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -28,14 +46,23 @@ services:
       context: .
       dockerfile: Valuator/Dockerfile
     environment: &valuator-environment
-      ConnectionStrings__Redis: redis:6379
+      DB_MAIN: redis-main:6379
+      DB_RU: redis-ru:6379
+      DB_EU: redis-eu:6379
+      DB_ASIA: redis-asia:6379
       RabbitMq__HostName: rabbitmq
       RabbitMq__UserName: lab
       RabbitMq__Password: lab
     ports:
       - "5001:8080"
-    depends_on:
-      redis:
+    depends_on: &application-dependencies
+      redis-main:
+        condition: service_healthy
+      redis-ru:
+        condition: service_healthy
+      redis-eu:
+        condition: service_healthy
+      redis-asia:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -47,37 +74,28 @@ services:
     environment: *valuator-environment
     ports:
       - "5002:8080"
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    depends_on: *application-dependencies
 
   rank-calculator-1:
     build:
       context: .
       dockerfile: RankCalculator/Dockerfile
     environment: &rank-environment
-      ConnectionStrings__Redis: redis:6379
+      DB_MAIN: redis-main:6379
+      DB_RU: redis-ru:6379
+      DB_EU: redis-eu:6379
+      DB_ASIA: redis-asia:6379
       RabbitMq__HostName: rabbitmq
       RabbitMq__UserName: lab
       RabbitMq__Password: lab
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    depends_on: *application-dependencies
 
   rank-calculator-2:
     build:
       context: .
       dockerfile: RankCalculator/Dockerfile
     environment: *rank-environment
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    depends_on: *application-dependencies
 
   events-logger-1:
     build:

@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["Contracts/Contracts.csproj", "Contracts/"]
+COPY ["ShardStore/ShardStore.csproj", "ShardStore/"]
 COPY ["RankCalculator/RankCalculator.csproj", "RankCalculator/"]
 RUN dotnet restore "RankCalculator/RankCalculator.csproj"
 COPY . .

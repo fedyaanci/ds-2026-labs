@@ -1,4 +1,4 @@
-using StackExchange.Redis; //
+using ShardStore;
 using Valuator.Messaging;
 
 namespace Valuator;
@@ -12,11 +12,11 @@ public class Program
         // Add services to the container.
         builder.Services.AddRazorPages();
         //
-        string redisAddress = builder.Configuration.GetConnectionString("Redis")!; // получение адреса
-
-        var redis = ConnectionMultiplexer.Connect(redisAddress); // подключение к redis
-
-        builder.Services.AddSingleton<IConnectionMultiplexer>(redis); // подключение доступно всей приложухе
+        builder.Services.AddSingleton(new ShardedRedisStore(
+            builder.Configuration["DB_MAIN"] ?? "localhost:6000",
+            builder.Configuration["DB_RU"] ?? "localhost:6001",
+            builder.Configuration["DB_EU"] ?? "localhost:6002",
+            builder.Configuration["DB_ASIA"] ?? "localhost:6003"));
         builder.Services.AddSingleton<MessagePublisher>();
         //
 

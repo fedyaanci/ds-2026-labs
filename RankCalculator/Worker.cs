@@ -2,6 +2,7 @@ using System.Text.Json;
 using Contracts;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using ShardStore;
 using StackExchange.Redis;
 
 namespace RankCalculator;
@@ -10,16 +11,16 @@ public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
     private readonly IConfiguration _configuration;
-    private readonly IDatabase _db;
+    private readonly ShardedRedisStore _store;
 
     public Worker(
         ILogger<Worker> logger,
         IConfiguration configuration,
-        IConnectionMultiplexer redis)
+        ShardedRedisStore store)
     {
         _logger = logger;
         _configuration = configuration;
-        _db = redis.GetDatabase();
+        _store = store;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -51,7 +52,15 @@ public class Worker : BackgroundService
                     eventArgs.Body.Span)
                     ?? throw new InvalidDataException("Empty rank request");
 
-                RedisValue textValue = await _db.StringGetAsync($"TEXT-{request.TextId}");
+                ShardContext? shard = await _store.LookupAsync(request.TextId);
+                if (shard is null)
+                {
+                    throw new InvalidDataException($"Shard for {request.TextId} was not found");
+                }
+
+                _logger.LogInformation(
+                    "LOOKUP: {TextId}, {Region}", request.TextId, shard.Region);
+                RedisValue textValue = await shard.Database.StringGetAsync($"TEXT-{request.TextId}");
                 if (!textValue.HasValue)
                 {
                     throw new InvalidDataException($"Text {request.TextId} was not found");
@@ -59,7 +68,7 @@ public class Worker : BackgroundService
 
                 string text = textValue.ToString();
                 double rank = CalculateRank(text);
-                await _db.StringSetAsync($"RANK-{request.TextId}", rank);
+                await shard.Database.StringSetAsync($"RANK-{request.TextId}", rank);
 
                 channel.ExchangeDeclare(
                     exchange: Messaging.EventsExchange,

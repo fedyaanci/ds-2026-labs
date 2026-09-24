@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Contracts\Contracts.csproj" />
+    <ProjectReference Include="..\ShardStore\ShardStore.csproj" />
   </ItemGroup>
 
 </Project>

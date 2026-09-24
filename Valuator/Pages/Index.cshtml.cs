@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using StackExchange.Redis;
+using ShardStore;
 using Valuator.Messaging;
 
 namespace Valuator.Pages;
@@ -9,16 +9,16 @@ public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
 
-    private readonly IDatabase _db;
+    private readonly ShardedRedisStore _store;
     private readonly MessagePublisher _messages;
 
     public IndexModel(
     ILogger<IndexModel> logger,
-    IConnectionMultiplexer redis,
+    ShardedRedisStore store,
     MessagePublisher messages)
     {
         _logger = logger;
-        _db = redis.GetDatabase();
+        _store = store;
         _messages = messages;
     }
 
@@ -27,19 +27,29 @@ public class IndexModel : PageModel
 
     }
 
-    public IActionResult OnPost(string text)
+    public async Task<IActionResult> OnPostAsync(string text, string country)
     {
         _logger.LogDebug(text);
 
+        if (!CountryRegions.TryGetRegion(country, out string region))
+        {
+            ModelState.AddModelError(nameof(country), "Выберите страну из списка.");
+            return Page();
+        }
+
         string id = Guid.NewGuid().ToString();
+        await _store.Main.StringSetAsync($"SHARD-{id}", region);
+        _logger.LogInformation("LOOKUP: {TextId}, {Region}", id, region);
+        ShardContext shard = _store.ForRegion(region);
 
         string textKey = "TEXT-" + id;
-        _db.StringSet(textKey, text); // TODO: (pa1) сохранить в БД (Redis) text по ключу textKey
+        await shard.Database.StringSetAsync(textKey, text);
+        await shard.Database.StringSetAsync("COUNTRY-" + id, country);
 
         string similarityKey = "SIMILARITY-" + id;
 
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
-        bool textWasAdded = _db.SetAdd("PROCESSED-TEXTS", text);
+        bool textWasAdded = await shard.Database.SetAddAsync("PROCESSED-TEXTS", text);
 
         double similarity;
 
@@ -52,7 +62,7 @@ public class IndexModel : PageModel
             similarity = 1;
         }
 
-        _db.StringSet(similarityKey, similarity);
+        await shard.Database.StringSetAsync(similarityKey, similarity);
         _messages.PublishSimilarityCalculated(id, similarity);
 
         // В сообщении передаётся только ID. Сам текст RankCalculator прочитает из Redis.

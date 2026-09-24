@@ -1,4 +1,4 @@
-# Запуск PA4
+# Запуск PA6
 
 Нужны Docker Desktop и PowerShell. Из корня репозитория:
 
@@ -7,7 +7,7 @@
 .\scripts\stop.ps1
 ```
 
-Скрипт запускает Redis, RabbitMQ, две копии Valuator, два конкурирующих
+Скрипт запускает четыре сегмента Redis, RabbitMQ, две копии Valuator, два конкурирующих
 RankCalculator, два EventsLogger и Nginx. Приложение доступно на
 `http://localhost:8080/`.
 
